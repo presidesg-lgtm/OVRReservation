@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Test Create Reservation</title>
+</head>
+<body>
+<h2>Create Reservation (Browser Test)</h2>
+
+<button id="sendBtn">Send POST /api/reservations</button>
+
+<pre id="out"></pre>
+
+<script>
+    document.getElementById("sendBtn").addEventListener("click", async () => {
+        const payload = {
+            reservationNo: "R002",
+            guestName: "Amal Perera",
+            address: "Kandy",
+            contactNo: "0771234568",
+            roomType: "DELUXE",
+            checkIn: "2026-02-27",
+            checkOut: "2026-02-28"
+        };
+
+        const res = await fetch("./api/reservations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const text = await res.text();
+        document.getElementById("out").textContent =
+            "HTTP " + res.status + "\n\n" + text;
+    });
+</script>
+</body>
+</html>

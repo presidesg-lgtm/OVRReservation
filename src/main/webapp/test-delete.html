@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head><meta charset="UTF-8"><title>Test Delete Reservation</title></head>
+    <body>
+        <h2>Delete Reservation (Browser Test)</h2>
+
+        <label>Reservation ID: <input id="rid" value="R001"></label>
+        <button id="btn">Send DELETE</button>
+
+        <pre id="out"></pre>
+
+        <script>
+            document.getElementById("btn").addEventListener("click", async () => {
+                const id = document.getElementById("rid").value.trim();
+                const res = await fetch("./api/reservations?id=" + encodeURIComponent(id), { method: "DELETE" });
+                const text = await res.text();
+                document.getElementById("out").textContent = "HTTP " + res.status + "\n\n" + text;
+            });
+        </script>
+    </body>
+</html>

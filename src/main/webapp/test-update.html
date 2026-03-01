@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Test Update Reservation</title></head>
+<body>
+<h2>Update Reservation (Browser Test)</h2>
+
+<label>Reservation ID: <input id="rid" value="R002"></label>
+<button id="btn">Send PUT</button>
+
+<pre id="out"></pre>
+
+<script>
+    document.getElementById("btn").addEventListener("click", async () => {
+        const id = document.getElementById("rid").value.trim();
+
+        const payload = {
+            guestName: "Updated Guest",
+            address: "Updated Address",
+            contactNo: "0711111111",
+            roomType: "SUITE",
+            checkIn: "2026-03-01",
+            checkOut: "2026-03-03"
+        };
+
+        const res = await fetch("./api/reservations?id=" + encodeURIComponent(id), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const text = await res.text();
+        document.getElementById("out").textContent = "HTTP " + res.status + "\n\n" + text;
+    });
+</script>
+</body>
+</html>
