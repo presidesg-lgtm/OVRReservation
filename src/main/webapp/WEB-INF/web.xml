@@ -7,6 +7,7 @@
 
   <display-name>OVRReservation</display-name>
 
+
   <servlet>
     <servlet-name>HelloServlet</servlet-name>
     <servlet-class>lk.icbt.oceanview.api.HelloServlet</servlet-class>
@@ -56,5 +57,15 @@
     <servlet-name>PriceServlet</servlet-name>
     <url-pattern>/api/price</url-pattern>
   </servlet-mapping>
+
+  <filter>
+    <filter-name>CorsFilter</filter-name>
+    <filter-class>lk.icbt.oceanview.filter.CorsFilter</filter-class>
+  </filter>
+
+  <filter-mapping>
+    <filter-name>CorsFilter</filter-name>
+    <url-pattern>/api/*</url-pattern>
+  </filter-mapping>
 
 </web-app>

@@ -14,13 +14,13 @@
 <script>
     document.getElementById("sendBtn").addEventListener("click", async () => {
         const payload = {
-            reservationNo: "R002",
-            guestName: "Amal Perera",
-            address: "Kandy",
-            contactNo: "0771234568",
+            reservationNo: "R003",
+            guestName: "Jamal Perera",
+            address: "Kandana",
+            contactNo: "0771234768",
             roomType: "DELUXE",
-            checkIn: "2026-02-27",
-            checkOut: "2026-02-28"
+            checkIn: "2026-02-28",
+            checkOut: "2026-03-01"
         };
 
         const res = await fetch("./api/reservations", {

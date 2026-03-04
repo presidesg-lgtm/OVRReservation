@@ -1,11 +1,11 @@
 package lk.icbt.oceanview.api;
 
 import com.google.gson.Gson;
-import lk.icbt.oceanview.dao.UserDAO;
 import lk.icbt.oceanview.dto.LoginRequest;
 import lk.icbt.oceanview.dto.LoginResponse;
+import lk.icbt.oceanview.exception.AuthException;
+import lk.icbt.oceanview.exception.ValidationException;
 import lk.icbt.oceanview.model.User;
-import lk.icbt.oceanview.service.AuthService;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -29,25 +29,25 @@ public class LoginServlet extends HttpServlet {
 
         try {
             LoginRequest body = gson.fromJson(req.getReader(), LoginRequest.class);
-            User user = authService.authenticate(body);
 
-            if (user == null) {
-                resp.setStatus(401);
-                resp.getWriter().write(gson.toJson(
-                        new LoginResponse(false, "Invalid username or password", null, null)
-                ));
-                return;
-            }
+            User user = authService.authenticate(body); // now throws AuthException if invalid
 
             resp.getWriter().write(gson.toJson(
                     new LoginResponse(true, "Login success", user.getUsername(), user.getRole())
             ));
 
-        } catch (IllegalArgumentException e) {
+        } catch (ValidationException e) {
             resp.setStatus(400);
             resp.getWriter().write(gson.toJson(
                     new LoginResponse(false, e.getMessage(), null, null)
             ));
+
+        } catch (AuthException e) {
+            resp.setStatus(401);
+            resp.getWriter().write(gson.toJson(
+                    new LoginResponse(false, e.getMessage(), null, null)
+            ));
+
         } catch (Exception e) {
             resp.setStatus(500);
             resp.getWriter().write(gson.toJson(

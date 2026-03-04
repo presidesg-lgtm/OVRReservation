@@ -1,10 +1,11 @@
 package lk.icbt.oceanview.api;
 
 import com.google.gson.Gson;
-import lk.icbt.oceanview.dao.ReservationDAO;
 import lk.icbt.oceanview.dto.ApiResponse;
 import lk.icbt.oceanview.dto.CreateReservationRequest;
-import lk.icbt.oceanview.service.ReservationService;
+import lk.icbt.oceanview.dto.UpdateReservationRequest;
+import lk.icbt.oceanview.exception.NotFoundException;
+import lk.icbt.oceanview.exception.ValidationException;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -15,7 +16,7 @@ public class ReservationsServlet extends HttpServlet {
 
     private final Gson gson = new Gson();
 
-    // manual wiring (no frameworks)
+    // manual wiring (no frameworks) - Factory pattern
     private final lk.icbt.oceanview.factory.ServiceFactory serviceFactory =
             new lk.icbt.oceanview.factory.ServiceFactory(new lk.icbt.oceanview.factory.DAOFactory());
 
@@ -24,18 +25,15 @@ public class ReservationsServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        resp.setContentType("application/json");
-        resp.setCharacterEncoding("UTF-8");
-
+        json(resp);
         try {
-            CreateReservationRequest body =
-                    gson.fromJson(req.getReader(), CreateReservationRequest.class);
-
+            CreateReservationRequest body = gson.fromJson(req.getReader(), CreateReservationRequest.class);
             service.createReservation(body);
 
             resp.setStatus(201);
             resp.getWriter().write(gson.toJson(new ApiResponse(true, "Reservation created")));
-        } catch (IllegalArgumentException e) {
+
+        } catch (ValidationException e) {
             resp.setStatus(400);
             resp.getWriter().write(gson.toJson(new ApiResponse(false, e.getMessage())));
         } catch (Exception e) {
@@ -45,113 +43,81 @@ public class ReservationsServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(javax.servlet.http.HttpServletRequest req,
-                         javax.servlet.http.HttpServletResponse resp) throws java.io.IOException {
-
-        resp.setContentType("application/json");
-        resp.setCharacterEncoding("UTF-8");
-
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        json(resp);
         try {
             String id = req.getParameter("id");
 
-            // if id is provided -> return single reservation
             if (id != null && !id.trim().isEmpty()) {
-                java.util.Map<String, Object> one = service.getReservationById(id);
-
-                if (one == null) {
-                    resp.setStatus(404);
-                    resp.getWriter().write(gson.toJson(
-                            new lk.icbt.oceanview.dto.ApiResponse(false, "Reservation not found: " + id)
-                    ));
-                    return;
-                }
-
-                resp.getWriter().write(gson.toJson(one));
+                resp.setStatus(200);
+                resp.getWriter().write(gson.toJson(service.getReservationById(id)));
                 return;
             }
 
-            // otherwise -> return list (existing behavior)
+            resp.setStatus(200);
             resp.getWriter().write(gson.toJson(service.getAllReservations()));
 
-        } catch (IllegalArgumentException e) {
+        } catch (ValidationException e) {
             resp.setStatus(400);
-            resp.getWriter().write(gson.toJson(new lk.icbt.oceanview.dto.ApiResponse(false, e.getMessage())));
+            resp.getWriter().write(gson.toJson(new ApiResponse(false, e.getMessage())));
+        } catch (NotFoundException e) {
+            resp.setStatus(404);
+            resp.getWriter().write(gson.toJson(new ApiResponse(false, e.getMessage())));
         } catch (Exception e) {
             resp.setStatus(500);
-            resp.getWriter().write(gson.toJson(
-                    new lk.icbt.oceanview.dto.ApiResponse(false, "Server error: " + e.getMessage())
-            ));
+            resp.getWriter().write(gson.toJson(new ApiResponse(false, "Server error: " + e.getMessage())));
         }
     }
 
     @Override
-    protected void doDelete(javax.servlet.http.HttpServletRequest req,
-                            javax.servlet.http.HttpServletResponse resp) throws java.io.IOException {
-
-        resp.setContentType("application/json");
-        resp.setCharacterEncoding("UTF-8");
-
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        json(resp);
         try {
             String id = req.getParameter("id");
+            UpdateReservationRequest body = gson.fromJson(req.getReader(), UpdateReservationRequest.class);
 
-            boolean deleted = service.deleteReservation(id);
-            if (!deleted) {
-                resp.setStatus(404);
-                resp.getWriter().write(gson.toJson(
-                        new lk.icbt.oceanview.dto.ApiResponse(false, "Reservation not found: " + id)
-                ));
-                return;
-            }
+            service.updateReservation(id, body);
 
-            resp.getWriter().write(gson.toJson(
-                    new lk.icbt.oceanview.dto.ApiResponse(true, "Reservation deleted: " + id)
-            ));
+            resp.setStatus(200);
+            resp.getWriter().write(gson.toJson(new ApiResponse(true, "Reservation updated: " + id)));
 
-        } catch (IllegalArgumentException e) {
+        } catch (ValidationException e) {
             resp.setStatus(400);
-            resp.getWriter().write(gson.toJson(new lk.icbt.oceanview.dto.ApiResponse(false, e.getMessage())));
+            resp.getWriter().write(gson.toJson(new ApiResponse(false, e.getMessage())));
+        } catch (NotFoundException e) {
+            resp.setStatus(404);
+            resp.getWriter().write(gson.toJson(new ApiResponse(false, e.getMessage())));
         } catch (Exception e) {
             resp.setStatus(500);
-            resp.getWriter().write(gson.toJson(
-                    new lk.icbt.oceanview.dto.ApiResponse(false, "Server error: " + e.getMessage())
-            ));
+            resp.getWriter().write(gson.toJson(new ApiResponse(false, "Server error: " + e.getMessage())));
         }
     }
 
     @Override
-    protected void doPut(javax.servlet.http.HttpServletRequest req,
-                         javax.servlet.http.HttpServletResponse resp) throws java.io.IOException {
-
-        resp.setContentType("application/json");
-        resp.setCharacterEncoding("UTF-8");
-
+    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        json(resp);
         try {
             String id = req.getParameter("id");
-            lk.icbt.oceanview.dto.UpdateReservationRequest body =
-                    gson.fromJson(req.getReader(), lk.icbt.oceanview.dto.UpdateReservationRequest.class);
 
-            boolean updated = service.updateReservation(id, body);
+            service.deleteReservation(id);
 
-            if (!updated) {
-                resp.setStatus(404);
-                resp.getWriter().write(gson.toJson(
-                        new lk.icbt.oceanview.dto.ApiResponse(false, "Reservation not found: " + id)
-                ));
-                return;
-            }
+            resp.setStatus(200);
+            resp.getWriter().write(gson.toJson(new ApiResponse(true, "Reservation deleted: " + id)));
 
-            resp.getWriter().write(gson.toJson(
-                    new lk.icbt.oceanview.dto.ApiResponse(true, "Reservation updated: " + id)
-            ));
-
-        } catch (IllegalArgumentException e) {
+        } catch (ValidationException e) {
             resp.setStatus(400);
-            resp.getWriter().write(gson.toJson(new lk.icbt.oceanview.dto.ApiResponse(false, e.getMessage())));
+            resp.getWriter().write(gson.toJson(new ApiResponse(false, e.getMessage())));
+        } catch (NotFoundException e) {
+            resp.setStatus(404);
+            resp.getWriter().write(gson.toJson(new ApiResponse(false, e.getMessage())));
         } catch (Exception e) {
             resp.setStatus(500);
-            resp.getWriter().write(gson.toJson(
-                    new lk.icbt.oceanview.dto.ApiResponse(false, "Server error: " + e.getMessage())
-            ));
+            resp.getWriter().write(gson.toJson(new ApiResponse(false, "Server error: " + e.getMessage())));
         }
+    }
+
+    private void json(HttpServletResponse resp) {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
     }
 }

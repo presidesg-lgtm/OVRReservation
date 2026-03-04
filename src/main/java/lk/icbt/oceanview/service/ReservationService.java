@@ -2,21 +2,17 @@ package lk.icbt.oceanview.service;
 
 import lk.icbt.oceanview.dao.ReservationDAO;
 import lk.icbt.oceanview.dto.CreateReservationRequest;
+import lk.icbt.oceanview.dto.UpdateReservationRequest;
+import lk.icbt.oceanview.exception.NotFoundException;
+import lk.icbt.oceanview.exception.ValidationException;
 import lk.icbt.oceanview.model.Reservation;
+import lk.icbt.oceanview.model.RoomType;
 
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+import java.util.Map;
 
 public class ReservationService {
-
-    // Collection #3: Set (valid room types)
-    private static final Set<String> VALID_ROOM_TYPES = new HashSet<>();
-    static {
-        VALID_ROOM_TYPES.add("STANDARD");
-        VALID_ROOM_TYPES.add("DELUXE");
-        VALID_ROOM_TYPES.add("SUITE");
-    }
 
     private final ReservationDAO dao;
 
@@ -25,94 +21,125 @@ public class ReservationService {
         this.dao = dao;
     }
 
+    // -----------------------
+    // CREATE
+    // -----------------------
     public void createReservation(CreateReservationRequest req) throws Exception {
-        // Validation (SRP: service handles business rules)
-        if (req == null) throw new IllegalArgumentException("Request body is missing");
-        if (isBlank(req.reservationNo)) throw new IllegalArgumentException("reservationNo is required");
-        if (isBlank(req.guestName)) throw new IllegalArgumentException("guestName is required");
-        if (isBlank(req.roomType)) throw new IllegalArgumentException("roomType is required");
-        if (isBlank(req.checkIn) || isBlank(req.checkOut)) throw new IllegalArgumentException("checkIn and checkOut are required");
+        requireBody(req);
 
-        String roomTypeUpper = req.roomType.trim().toUpperCase();
-        if (!VALID_ROOM_TYPES.contains(roomTypeUpper)) {
-            throw new IllegalArgumentException("Invalid roomType. Use STANDARD, DELUXE, or SUITE");
-        }
+        String reservationNo = requireTrimmed(req.reservationNo, "reservationNo is required");
+        String guestName = requireTrimmed(req.guestName, "guestName is required");
+        RoomType roomType = RoomType.from(req.roomType); // throws ValidationException if invalid
 
-        LocalDate checkIn = LocalDate.parse(req.checkIn.trim());
-        LocalDate checkOut = LocalDate.parse(req.checkOut.trim());
-        if (!checkOut.isAfter(checkIn)) {
-            throw new IllegalArgumentException("checkOut must be after checkIn");
-        }
+        LocalDate checkIn = parseDate(req.checkIn, "checkIn");
+        LocalDate checkOut = parseDate(req.checkOut, "checkOut");
+        validateDateRange(checkIn, checkOut);
 
         Reservation r = new Reservation(
-                req.reservationNo.trim(),
-                req.guestName.trim(),
-                req.address == null ? null : req.address.trim(),
-                req.contactNo == null ? null : req.contactNo.trim(),
-                roomTypeUpper,
+                reservationNo,
+                guestName,
+                trimOrNull(req.address),
+                trimOrNull(req.contactNo),
+                roomType.name(),
                 checkIn,
                 checkOut
         );
 
         dao.insert(r);
     }
-    public java.util.List<java.util.Map<String, Object>> getAllReservations() throws Exception {
+
+    // -----------------------
+    // READ
+    // -----------------------
+    public List<Map<String, Object>> getAllReservations() throws Exception {
         return dao.findAll();
     }
 
-    public java.util.Map<String, Object> getReservationById(String reservationNo) throws Exception {
-        if (reservationNo == null || reservationNo.trim().isEmpty()) {
-            throw new IllegalArgumentException("id is required");
+    public Map<String, Object> getReservationById(String reservationNo) throws Exception {
+        String id = requireTrimmed(reservationNo, "id is required");
+
+        Map<String, Object> one = dao.findById(id);
+        if (one == null) {
+            throw new NotFoundException("Reservation not found: " + id);
         }
-        return dao.findById(reservationNo.trim());
+        return one;
     }
 
-    public boolean deleteReservation(String reservationNo) throws Exception {
-        if (reservationNo == null || reservationNo.trim().isEmpty()) {
-            throw new IllegalArgumentException("id is required");
+    // -----------------------
+    // DELETE
+    // -----------------------
+    public void deleteReservation(String reservationNo) throws Exception {
+        String id = requireTrimmed(reservationNo, "id is required");
+
+        int rows = dao.deleteById(id);
+        if (rows == 0) {
+            throw new NotFoundException("Reservation not found: " + id);
         }
-        int rows = dao.deleteById(reservationNo.trim());
-        return rows > 0;
     }
 
-    public boolean updateReservation(String reservationNo, lk.icbt.oceanview.dto.UpdateReservationRequest req) throws Exception {
-        if (reservationNo == null || reservationNo.trim().isEmpty()) {
-            throw new IllegalArgumentException("id is required");
-        }
-        if (req == null) {
-            throw new IllegalArgumentException("Request body is missing");
-        }
+    // -----------------------
+    // UPDATE
+    // -----------------------
+    public void updateReservation(String reservationNo, UpdateReservationRequest req) throws Exception {
+        String id = requireTrimmed(reservationNo, "id is required");
+        requireBody(req);
 
-        // required fields for update (simpler for now)
-        if (isBlank(req.guestName)) throw new IllegalArgumentException("guestName is required");
-        if (isBlank(req.roomType)) throw new IllegalArgumentException("roomType is required");
-        if (isBlank(req.checkIn) || isBlank(req.checkOut)) throw new IllegalArgumentException("checkIn and checkOut are required");
+        String guestName = requireTrimmed(req.guestName, "guestName is required");
+        RoomType roomType = RoomType.from(req.roomType);
 
-        String roomTypeUpper = req.roomType.trim().toUpperCase();
-        if (!VALID_ROOM_TYPES.contains(roomTypeUpper)) {
-            throw new IllegalArgumentException("Invalid roomType. Use STANDARD, DELUXE, or SUITE");
-        }
-
-        java.time.LocalDate checkIn = java.time.LocalDate.parse(req.checkIn.trim());
-        java.time.LocalDate checkOut = java.time.LocalDate.parse(req.checkOut.trim());
-        if (!checkOut.isAfter(checkIn)) {
-            throw new IllegalArgumentException("checkOut must be after checkIn");
-        }
+        LocalDate checkIn = parseDate(req.checkIn, "checkIn");
+        LocalDate checkOut = parseDate(req.checkOut, "checkOut");
+        validateDateRange(checkIn, checkOut);
 
         int rows = dao.updateById(
-                reservationNo.trim(),
-                req.guestName.trim(),
-                req.address == null ? null : req.address.trim(),
-                req.contactNo == null ? null : req.contactNo.trim(),
-                roomTypeUpper,
+                id,
+                guestName,
+                trimOrNull(req.address),
+                trimOrNull(req.contactNo),
+                roomType.name(),
                 checkIn,
                 checkOut
         );
-        return rows > 0;
+
+        if (rows == 0) {
+            throw new NotFoundException("Reservation not found: " + id);
+        }
     }
 
-    private boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
+    // -----------------------
+    // Helpers
+    // -----------------------
+    private void requireBody(Object body) {
+        if (body == null) {
+            throw new ValidationException("Request body is missing");
+        }
     }
 
+    private String requireTrimmed(String value, String messageIfMissing) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new ValidationException(messageIfMissing);
+        }
+        return value.trim();
+    }
+
+    private String trimOrNull(String s) {
+        return (s == null) ? null : s.trim();
+    }
+
+    private LocalDate parseDate(String value, String fieldName) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new ValidationException(fieldName + " is required");
+        }
+        try {
+            return LocalDate.parse(value.trim());
+        } catch (Exception e) {
+            throw new ValidationException(fieldName + " must be a valid date (YYYY-MM-DD)");
+        }
+    }
+
+    private void validateDateRange(LocalDate checkIn, LocalDate checkOut) {
+        if (!checkOut.isAfter(checkIn)) {
+            throw new ValidationException("checkOut must be after checkIn");
+        }
+    }
 }

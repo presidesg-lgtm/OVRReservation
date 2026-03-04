@@ -1,6 +1,8 @@
 package lk.icbt.oceanview.service;
 
 import lk.icbt.oceanview.dao.RoomRateDAO;
+import lk.icbt.oceanview.exception.ValidationException;
+import lk.icbt.oceanview.model.RoomType;
 import lk.icbt.oceanview.pricing.PricingStrategy;
 import lk.icbt.oceanview.pricing.PricingStrategyFactory;
 
@@ -21,19 +23,30 @@ public class PricingService {
     }
 
     public Map<String, Object> calculatePrice(String roomType, String checkIn, String checkOut) throws Exception {
-        if (roomType == null || roomType.trim().isEmpty()) throw new IllegalArgumentException("roomType is required");
-        if (checkIn == null || checkIn.trim().isEmpty()) throw new IllegalArgumentException("checkIn is required");
-        if (checkOut == null || checkOut.trim().isEmpty()) throw new IllegalArgumentException("checkOut is required");
 
-        String rt = roomType.trim().toUpperCase();
+        if (roomType == null || roomType.trim().isEmpty()) throw new ValidationException("roomType is required");
+        if (checkIn == null || checkIn.trim().isEmpty()) throw new ValidationException("checkIn is required");
+        if (checkOut == null || checkOut.trim().isEmpty()) throw new ValidationException("checkOut is required");
+
+        // Enum validation (OOP) - throws ValidationException if invalid
+        RoomType rtEnum;
+        try {
+            rtEnum = RoomType.from(roomType);
+        } catch (IllegalArgumentException ex) {
+            // If your RoomType.from currently throws IllegalArgumentException, convert it:
+            throw new ValidationException(ex.getMessage());
+        }
 
         LocalDate in = LocalDate.parse(checkIn.trim());
         LocalDate out = LocalDate.parse(checkOut.trim());
         long nights = ChronoUnit.DAYS.between(in, out);
-        if (nights <= 0) throw new IllegalArgumentException("checkOut must be after checkIn");
+
+        if (nights <= 0) throw new ValidationException("checkOut must be after checkIn");
+
+        String rt = rtEnum.name();
 
         BigDecimal nightlyRate = roomRateDAO.getRateByRoomType(rt);
-        if (nightlyRate == null) throw new IllegalArgumentException("Room type not found in DB: " + rt);
+        if (nightlyRate == null) throw new ValidationException("Room type not found in DB: " + rt);
 
         PricingStrategy strategy = strategyFactory.getStrategy(rt);
         BigDecimal total = strategy.calculateTotal(nightlyRate, nights);

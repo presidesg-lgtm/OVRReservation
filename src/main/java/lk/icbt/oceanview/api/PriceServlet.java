@@ -3,6 +3,7 @@ package lk.icbt.oceanview.api;
 import com.google.gson.Gson;
 import lk.icbt.oceanview.dao.RoomRateDAO;
 import lk.icbt.oceanview.dto.ApiResponse;
+import lk.icbt.oceanview.exception.ValidationException;
 import lk.icbt.oceanview.pricing.PricingStrategyFactory;
 import lk.icbt.oceanview.service.PricingService;
 
@@ -28,15 +29,20 @@ public class PriceServlet extends HttpServlet {
             String checkIn = req.getParameter("checkIn");
             String checkOut = req.getParameter("checkOut");
 
+            resp.setStatus(200);
             resp.getWriter().write(gson.toJson(
                     pricingService.calculatePrice(roomType, checkIn, checkOut)
             ));
-        } catch (IllegalArgumentException e) {
+
+        } catch (ValidationException e) {
             resp.setStatus(400);
             resp.getWriter().write(gson.toJson(new ApiResponse(false, e.getMessage())));
+
         } catch (Exception e) {
             resp.setStatus(500);
-            resp.getWriter().write(gson.toJson(new ApiResponse(false, "Server error: " + e.getMessage())));
+            resp.getWriter().write(gson.toJson(
+                    new ApiResponse(false, "Server error: " + e.getMessage())
+            ));
         }
     }
 }

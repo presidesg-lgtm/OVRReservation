@@ -1,14 +1,14 @@
 package lk.icbt.oceanview.api;
 
 import com.google.gson.Gson;
-
+import lk.icbt.oceanview.dto.ApiResponse;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
-
 
 public class HelloServlet extends HttpServlet {
 
@@ -19,11 +19,19 @@ public class HelloServlet extends HttpServlet {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
 
-        Map<String, Object> payload = Map.of(
-                "message", "Hello from Java EE (Servlet)",
-                "status", "ok"
-        );
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("message", "Hello from Java EE (Servlet)");
+            payload.put("status", "ok");
 
-        resp.getWriter().write(gson.toJson(payload));
+            resp.setStatus(200);
+            resp.getWriter().write(gson.toJson(payload));
+
+        } catch (Exception e) {
+            resp.setStatus(500);
+            resp.getWriter().write(gson.toJson(
+                    new ApiResponse(false, "Server error: " + e.getMessage())
+            ));
+        }
     }
 }
