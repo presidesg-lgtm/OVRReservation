@@ -7,17 +7,6 @@
 
   <display-name>OVRReservation</display-name>
 
-
-  <servlet>
-    <servlet-name>HelloServlet</servlet-name>
-    <servlet-class>lk.icbt.oceanview.api.HelloServlet</servlet-class>
-  </servlet>
-
-  <servlet-mapping>
-    <servlet-name>HelloServlet</servlet-name>
-    <url-pattern>/api/hello</url-pattern>
-  </servlet-mapping>
-
   <servlet>
     <servlet-name>RoomRatesServlet</servlet-name>
     <servlet-class>lk.icbt.oceanview.api.RoomRatesServlet</servlet-class>

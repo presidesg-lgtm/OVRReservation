@@ -20,7 +20,7 @@ public class ReservationDAO {
             ps.setString(2, r.getGuestName());
             ps.setString(3, r.getAddress());
             ps.setString(4, r.getContactNo());
-            ps.setString(5, r.getRoomType());
+              ps.setString(5, r.getRoomType());
             ps.setDate(6, java.sql.Date.valueOf(r.getCheckIn()));
             ps.setDate(7, java.sql.Date.valueOf(r.getCheckOut()));
 
